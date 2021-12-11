@@ -43,10 +43,15 @@ pub async fn deploy(
     account: &mut LocalAccount,
     project_path: &Path,
 ) -> Result<()> {
-    let compiled_package = build_move_package(
-        project_path.join(shared::MAIN_PKG_PATH).as_ref(),
-        &account.address(),
-    )?;
+    deploy_package(client, account, &project_path.join(shared::MAIN_PKG_PATH)).await
+}
+
+pub async fn deploy_package(
+    client: &DevApiClient,
+    account: &mut LocalAccount,
+    pkg_path: &Path,
+) -> Result<()> {
+    let compiled_package = build_move_package(pkg_path, &account.address())?;
     for module in compiled_package
         .transitive_compiled_modules()
         .compute_dependency_graph()

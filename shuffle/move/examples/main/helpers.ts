@@ -110,7 +110,7 @@ export async function invokeScriptFunctionForAddress(
       "type": "script_function_payload",
       "function": scriptFunction,
       "type_arguments": typeArguments,
-      "arguments": args.map((a) => a.encode()),
+      "arguments": mv.encode(args),
     },
   };
 

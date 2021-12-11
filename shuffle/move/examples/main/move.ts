@@ -46,52 +46,59 @@
 
 import * as util from "https://deno.land/std@0.85.0/node/util.ts";
 
-export interface MoveType {
-  encode(): string | number;
-}
+export type MoveType = NumberEncoder | StringEncoder | Array<MoveType>; // Through recursion, supports arrays of arrays.
+export type EncodedType = string | number | Array<EncodedType>;
 
-class StringType {
-  constructor(readonly value: string) {}
-  encode(): string {
-    return this.value;
+export function encode(instance: MoveType): EncodedType {
+  if (Array.isArray(instance)) {
+    return instance.map(e => encode(e));
   }
+
+  return instance.encode();
 }
 
-class NumberType {
+class NumberEncoder {
   constructor(readonly value: number) {}
   encode(): number {
     return this.value;
   }
 }
 
-export class AsciiType extends StringType {
+class StringEncoder {
+  constructor(readonly value: string) {}
+  encode(): string {
+    return this.value;
+  }
+}
+
+export class AsciiType extends StringEncoder {
   encode(): string {
     return asciiToHex(this.value);
   }
 }
 
-export class AddressType extends StringType {}
-export class HexType extends StringType {} // Hex encoded bytes
-export class U64Type extends StringType {} // Must be string to keep precision
-export class U8Type extends NumberType {}
+export class AddressType extends StringEncoder {}
+export class HexType extends StringEncoder {} // Hex encoded bytes
+export class U64Type extends StringEncoder {} // Must be string to keep precision
+export class U8Type extends NumberEncoder {}
 
-export function Address(value: string): MoveType {
+export function Address(value: string): AddressType {
   return new AddressType(value);
 }
 
-export function Ascii(value: string): MoveType {
+export function Ascii(value: string): AsciiType {
   return new AsciiType(value);
 }
 
-export function Hex(value: string): MoveType {
+export function Hex(value: string): HexType {
   return new HexType(value);
 }
 
-export function U64(value: string): MoveType {
+export function U64(value: string): U64Type {
   return new U64Type(value);
 }
 
-export function U8(value: number): MoveType {
+export function U8(value: number): U8Type {
   if (value < 0) {
     throw 'cannot be a negative, or signed, integer'
   }
@@ -103,7 +110,7 @@ export function asciiToHex(input: string): string {
   return bufferToHex(textEncoder.encode(input));
 }
 
-function bufferToHex(buffer: any) {
+function bufferToHex(buffer: any): string {
   return [...new Uint8Array(buffer)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");

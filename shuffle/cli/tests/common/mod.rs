@@ -11,7 +11,7 @@ use shuffle::{
     account, deploy,
     dev_api_client::DevApiClient,
     new, shared,
-    shared::{Home, Network, NetworkHome, NetworksConfig},
+    shared::{Home, Network, NetworkHome, NetworksConfig, MAIN_PKG_PATH},
 };
 use smoke_test::scripts_and_modules::enable_open_publishing;
 use std::{
@@ -114,14 +114,15 @@ impl ShuffleTestHelper {
         )
     }
 
-    pub async fn deploy_project(
+    pub async fn deploy_package(
         &self,
         account: &mut LocalAccount,
         dev_api_url: &str,
+        pkg_path: &Path,
     ) -> Result<()> {
         let url = Url::from_str(dev_api_url)?;
         let client = DevApiClient::new(reqwest::Client::new(), url)?;
-        deploy::deploy(&client, account, &self.project_path()).await
+        deploy::deploy_package(&client, account, pkg_path).await
     }
 
     pub fn codegen_project(&self, account: &LocalAccount) -> Result<()> {
@@ -160,7 +161,16 @@ pub fn bootstrap_shuffle_project(ctx: &mut AdminContext<'_>) -> Result<ShuffleTe
 
     handle.block_on(helper.create_account("latest", tc, &account_1, &factory, &dev_client))?;
     handle.block_on(helper.create_account("test", tc, &account_2, &factory, &dev_client))?;
-    handle.block_on(helper.deploy_project(&mut account_1, ctx.chain_info().rest_api()))?;
+    handle.block_on(helper.deploy_package(
+        &mut account_1,
+        ctx.chain_info().rest_api(),
+        &helper.project_path().join(MAIN_PKG_PATH),
+    ))?;
+    handle.block_on(helper.deploy_package(
+        &mut account_1,
+        ctx.chain_info().rest_api(),
+        &helper.project_path().join("integration"),
+    ))?;
     helper.codegen_project(&account_1)?;
     Ok(helper)
 }
